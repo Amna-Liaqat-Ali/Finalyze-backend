@@ -13,9 +13,6 @@ app.use(cors());
 
 app.get('/', (req, res) => res.json({ status: 'Finalyze backend is running' }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/scan', scanRoutes);
-
 let isConnected = false;
 
 async function connectDB() {
@@ -24,6 +21,7 @@ async function connectDB() {
   isConnected = true;
 }
 
+// Connect DB before routes
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -32,5 +30,8 @@ app.use(async (req, res, next) => {
     res.status(500).json({ error: 'Database connection failed' });
   }
 });
+
+app.use('/api/auth', authRoutes);
+app.use('/api/scan', scanRoutes);
 
 module.exports = app;
