@@ -5,7 +5,6 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const scanRoutes = require('./routes/scan');
-const { verifyEmailConnection } = require('./services/emailService');
 
 const app = express();
 
@@ -17,19 +16,21 @@ app.get('/', (req, res) => res.json({ status: 'Finalyze backend is running' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/scan', scanRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log(err));
+let isConnected = false;
 
-verifyEmailConnection().catch((err) => {
-  console.error('[EMAIL] SMTP verification failed:', err.message);
-});
-
-const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+async function connectDB() {
+  if (isConnected) return;
+  await mongoose.connect(process.env.MONGO_URI);
+  isConnected = true;
 }
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
 
 module.exports = app;
