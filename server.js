@@ -12,6 +12,8 @@ const app = express();
 app.use(express.json({ limit: '15mb' }));
 app.use(cors());
 
+app.get('/', (req, res) => res.json({ status: 'Finalyze backend is running' }));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/scan', scanRoutes);
 
