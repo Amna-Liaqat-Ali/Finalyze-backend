@@ -4,8 +4,21 @@ const Scan = require('../models/Scan');
 
 router.get('/history/:userId', async (req, res) => {
     try {
-        const historyLogs = await Scan.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+        // Exclude imageData from list — loaded separately per scan
+        const historyLogs = await Scan.find({ userId: req.params.userId })
+            .select('-imageData')
+            .sort({ createdAt: -1 });
         res.status(200).json(historyLogs);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/detail/:scanId', async (req, res) => {
+    try {
+        const scan = await Scan.findById(req.params.scanId);
+        if (!scan) return res.status(404).json({ message: 'Scan not found.' });
+        res.status(200).json(scan);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
