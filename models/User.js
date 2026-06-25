@@ -21,13 +21,12 @@ const userSchema = new mongoose.Schema({
     },
     userRole: {
         type: String,
-        required: true,
         enum: ['End Consumer', 'Seafood Vendor / Retailer', 'Commercial Fisherman', 'Quality Control Inspector'],
         default: 'End Consumer'
     },
     region: {
         type: String,
-        required: true,
+        default: '',
         trim: true
     },
     organization: {
