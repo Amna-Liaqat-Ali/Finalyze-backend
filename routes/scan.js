@@ -1,6 +1,58 @@
 const express = require('express');
 const router = express.Router();
 const Scan = require('../models/Scan');
+const User = require('../models/User');
+
+const MAX_SCANS = 15;
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+router.get('/limit/:userId', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('scanCount scanWindowStart');
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        const now = Date.now();
+        const windowStart = user.scanWindowStart ? user.scanWindowStart.getTime() : null;
+        const expired = !windowStart || (now - windowStart) >= WINDOW_MS;
+
+        const count = expired ? 0 : (user.scanCount || 0);
+        const resetAt = expired ? null : new Date(windowStart + WINDOW_MS).toISOString();
+
+        res.json({ used: count, max: MAX_SCANS, resetAt, isLimited: count >= MAX_SCANS });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post('/limit/increment/:userId', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('scanCount scanWindowStart');
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        const now = Date.now();
+        const windowStart = user.scanWindowStart ? user.scanWindowStart.getTime() : null;
+        const expired = !windowStart || (now - windowStart) >= WINDOW_MS;
+
+        let count = expired ? 0 : (user.scanCount || 0);
+        const newWindowStart = expired ? new Date(now) : user.scanWindowStart;
+
+        if (count >= MAX_SCANS) {
+            const resetAt = new Date(newWindowStart.getTime() + WINDOW_MS).toISOString();
+            return res.status(429).json({ used: count, max: MAX_SCANS, resetAt, isLimited: true });
+        }
+
+        count += 1;
+        await User.findByIdAndUpdate(req.params.userId, {
+            scanCount: count,
+            scanWindowStart: newWindowStart,
+        });
+
+        const resetAt = new Date(newWindowStart.getTime() + WINDOW_MS).toISOString();
+        res.json({ used: count, max: MAX_SCANS, resetAt, isLimited: count >= MAX_SCANS });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 router.get('/history/:userId', async (req, res) => {
     try {

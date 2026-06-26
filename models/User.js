@@ -48,7 +48,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['verification', 'password_reset'],
         default: 'verification'
-    }
+    },
+    scanCount: { type: Number, default: 0 },
+    scanWindowStart: { type: Date, default: null }
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {
