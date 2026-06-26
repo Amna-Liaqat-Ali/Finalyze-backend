@@ -89,10 +89,6 @@ router.post('/save-scan', async (req, res) => {
             imageData,
         } = req.body;
 
-        if (!imageData) {
-            return res.status(400).json({ message: "Image data payload is required." });
-        }
-
         const newScan = new Scan({
             userId,
             imageData,
