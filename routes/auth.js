@@ -260,6 +260,47 @@ router.post('/signin', async (req, res) => {
     }
 });
 
+router.put('/update-profile/:userId', async (req, res) => {
+    try {
+        const { fullName, email } = req.body;
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        if (fullName) user.fullName = fullName;
+        if (email && email !== user.email) {
+            const existing = await User.findOne({ email: email.toLowerCase().trim() });
+            if (existing) return res.status(400).json({ message: 'Email already in use by another account.' });
+            user.email = email.toLowerCase().trim();
+        }
+        await user.save();
+        res.status(200).json({ message: 'Profile updated successfully.', fullName: user.fullName, email: user.email });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/change-password/:userId', async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword)
+            return res.status(400).json({ message: 'Current and new password are required.' });
+        if (newPassword.length < 6)
+            return res.status(400).json({ message: 'New password must be at least 6 characters.' });
+
+        const user = await User.findById(req.params.userId);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) return res.status(400).json({ message: 'Current password is incorrect.' });
+
+        user.password = newPassword;
+        await user.save();
+        res.status(200).json({ message: 'Password changed successfully.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.delete('/delete/:userId', async (req, res) => {
     try {
         const user = await User.findByIdAndDelete(req.params.userId);
