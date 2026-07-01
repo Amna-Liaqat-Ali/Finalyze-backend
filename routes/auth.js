@@ -177,8 +177,8 @@ router.post('/forgot-password', async (req, res) => {
 
         const user = await User.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
-            return res.status(200).json({
-                message: 'If an account exists for this email, a reset code has been sent.',
+            return res.status(404).json({
+                message: 'No account found with this email address.',
             });
         }
 
@@ -255,6 +255,19 @@ router.post('/signin', async (req, res) => {
         const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
 
         res.status(200).json({ message: 'Login successful', token, userId: user._id, fullName: user.fullName, email: user.email });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/delete/:userId', async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.userId);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+        // Also delete all scans belonging to this user
+        const Scan = require('../models/Scan');
+        await Scan.deleteMany({ userId: req.params.userId });
+        res.status(200).json({ message: 'Account deleted successfully.' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
